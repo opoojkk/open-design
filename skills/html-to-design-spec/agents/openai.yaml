@@ -1,0 +1,4 @@
+interface:
+  display_name: "HTML to Design Spec"
+  short_description: "Convert HTML prototypes into design specs"
+  default_prompt: "Use $html-to-design-spec to convert this Open Design or HTML prototype into design specs and reconstruction assets."
