@@ -18,6 +18,16 @@ def slugify(value: str) -> str:
     return value or "prototype"
 
 
+def timestamp_to_iso(timestamp: str, local_timezone) -> str | None:
+    for fmt in ("%Y%m%d-%H%M%S", "%Y%m%d%H%M%S"):
+        try:
+            parsed = datetime.strptime(timestamp, fmt)
+        except ValueError:
+            continue
+        return parsed.replace(tzinfo=local_timezone).isoformat(timespec="seconds")
+    return None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project_dir", help="Directory where the analysis result should be created.")
@@ -36,7 +46,7 @@ def main() -> int:
     project_dir = Path(args.project_dir).expanduser().resolve()
     now = datetime.now().astimezone()
     timestamp = args.timestamp or now.strftime("%Y%m%d-%H%M%S")
-    created_at_iso = now.isoformat(timespec="seconds")
+    created_at_iso = timestamp_to_iso(timestamp, now.tzinfo) if args.timestamp else now.isoformat(timespec="seconds")
     base_name = args.name or (Path(args.target).name if args.target else project_dir.name)
     run_dir = project_dir / f"{slugify(base_name)}-{timestamp}"
 
