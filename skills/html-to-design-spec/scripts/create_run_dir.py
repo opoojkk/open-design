@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a Prototype Intelligence run directory skeleton."""
+"""Create a html-to-design-spec run directory skeleton."""
 
 from __future__ import annotations
 
@@ -24,10 +24,19 @@ def main() -> int:
     parser.add_argument("--name", help="HTML file stem, route, app name, or other run label.")
     parser.add_argument("--target", help="Prototype URL or file path being analyzed.")
     parser.add_argument("--timestamp", help="Timestamp suffix. Defaults to local YYYYMMDD-HHMMSS.")
+    parser.add_argument(
+        "-p",
+        "--prompt-constraint",
+        action="append",
+        default=[],
+        help="Runtime constraint from the user prompt. May be provided multiple times.",
+    )
     args = parser.parse_args()
 
     project_dir = Path(args.project_dir).expanduser().resolve()
-    timestamp = args.timestamp or datetime.now().strftime("%Y%m%d-%H%M%S")
+    now = datetime.now().astimezone()
+    timestamp = args.timestamp or now.strftime("%Y%m%d-%H%M%S")
+    created_at_iso = now.isoformat(timespec="seconds")
     base_name = args.name or (Path(args.target).name if args.target else project_dir.name)
     run_dir = project_dir / f"{slugify(base_name)}-{timestamp}"
 
@@ -35,22 +44,76 @@ def main() -> int:
     for child in ("screenshots", "prompts", "specs"):
         (run_dir / child).mkdir()
 
+    pages = {
+        "schemaVersion": "html-to-design-spec/v1",
+        "metadata": {
+            "target": args.target,
+            "capturedAt": None,
+            "viewports": [],
+            "tooling": [],
+            "runConstraints": args.prompt_constraint,
+        },
+        "discoveredActions": [],
+        "dedupeLog": [],
+        "pages": [],
+        "states": [],
+    }
+    style = {
+        "schemaVersion": "html-to-design-spec/v1",
+        "designTokens": {
+            "colors": [],
+            "backgroundTokens": [],
+            "typography": [],
+            "spacing": [],
+            "radii": [],
+            "shadows": [],
+            "borders": [],
+        },
+        "componentStyles": [],
+        "responsiveStyle": [],
+        "visualReferences": [],
+    }
+
     (run_dir / "pages.json").write_text(
-        json.dumps({"metadata": {"target": args.target}, "pages": [], "states": []}, indent=2) + "\n",
+        json.dumps(pages, indent=2) + "\n",
         encoding="utf-8",
     )
-    (run_dir / "flows.json").write_text(json.dumps({"flows": []}, indent=2) + "\n", encoding="utf-8")
-    (run_dir / "graph.json").write_text(json.dumps({"nodes": [], "edges": []}, indent=2) + "\n", encoding="utf-8")
+    (run_dir / "flows.json").write_text(
+        json.dumps({"schemaVersion": "html-to-design-spec/v1", "flows": []}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "graph.json").write_text(
+        json.dumps({"schemaVersion": "html-to-design-spec/v1", "nodes": [], "edges": []}, indent=2) + "\n",
+        encoding="utf-8",
+    )
     (run_dir / "style.json").write_text(
-        json.dumps({"designTokens": {}, "componentStyles": [], "responsiveStyle": [], "visualReferences": []}, indent=2) + "\n",
+        json.dumps(style, indent=2) + "\n",
         encoding="utf-8",
     )
 
     metadata = {
+        "schemaVersion": "html-to-design-spec/v1",
         "target": args.target,
         "createdAt": timestamp,
+        "createdAtIso": created_at_iso,
         "runDirectory": str(run_dir),
-        "requiredOutputs": ["pages.json", "flows.json", "graph.json", "style.json", "screenshots/", "prompts/", "specs/"],
+        "runConstraints": args.prompt_constraint,
+        "viewports": [],
+        "tooling": [],
+        "defaultOutputs": ["pages.json", "style.json", "screenshots/"],
+        "conditionalOutputs": ["flows.json", "graph.json", "prompts/", "specs/"],
+        "generatedOutputs": [],
+        "placeholderOutputs": [
+            "pages.json",
+            "style.json",
+            "screenshots/",
+            "flows.json",
+            "graph.json",
+            "prompts/",
+            "specs/",
+        ],
+        "omittedOutputs": [],
+        "validationStatus": "pending",
     }
     (run_dir / "manifest.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     print(run_dir)
